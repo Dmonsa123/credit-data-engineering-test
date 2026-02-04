@@ -1,0 +1,20 @@
+# Spark y Hadoop
+spark-warehouse/
+metastore_db/
+derby.log
+checkpoint/
+*.lzo
+*.crc
+
+# Python y Entorno
+__pycache__/
+*.py[cod]
+venv/
+.env
+
+# Datos (IMPORTANTE: Solo subimos la estructura, no los datos procesados)
+data/input/
+data/bronze/
+data/silver/
+data/gold/
+data/quarantine/
