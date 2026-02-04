@@ -13,6 +13,10 @@ def procesar_bronze():
 
     try:
         # 1. Listar archivos CSV en input
+        if not os.path.exists(path_entrada):
+            print(f"⚠️ La carpeta {path_entrada} no existe.")
+            return
+
         archivos = [f for f in os.listdir(path_entrada) if f.endswith('.csv')]
         
         if not archivos:
@@ -25,7 +29,8 @@ def procesar_bronze():
             df_temp = pd.read_csv(ruta_full)
             
             # Añadir metadatos (Auditoría)
-            df_temp['ingestion_timestamp'] = datetime.now()
+            # Usamos microsegundos explícitamente desde aquí
+            df_temp['ingestion_timestamp'] = pd.to_datetime(datetime.now()).floor('us')
             df_temp['source_file'] = archivo
             lista_dfs.append(df_temp)
             print(f"✔️ Leído: {archivo}")
@@ -33,9 +38,17 @@ def procesar_bronze():
         # 2. Consolidar datos
         df_bronze = pd.concat(lista_dfs, ignore_index=True)
 
-        # 3. Guardar en Parquet (Formato estándar de Data Lake)
+        # 3. Guardar en Parquet con compatibilidad para Spark
         output_file = os.path.join(path_salida, "events_bronze.parquet")
-        df_bronze.to_parquet(output_file, index=False)
+        
+        # EL FIX CRÍTICO ESTÁ AQUÍ:
+        df_bronze.to_parquet(
+            output_file, 
+            index=False, 
+            engine='pyarrow', 
+            coerce_timestamps='us', # Spark prefiere microsegundos (us) no nanosegundos (ns)
+            allow_truncated_timestamps=True
+        )
         
         print(f"\n✅ Capa Bronze completada con éxito.")
         print(f"📊 Total registros: {len(df_bronze)}")

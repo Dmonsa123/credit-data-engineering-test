@@ -1,40 +1,48 @@
-import pandas as pd
 import os
+import sys
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import col, sum, count, avg, round
 
 def procesar_gold():
-    path_silver = "data/silver/events_silver.parquet"
-    path_regions = "data/raw_source/region_reference.csv"
-    path_gold = "data/gold/"
-    
-    os.makedirs(path_gold, exist_ok=True)
+    # Fix entorno
+    if "SPARK_HOME" in os.environ: del os.environ["SPARK_HOME"]
+    os.environ['PYSPARK_PYTHON'] = sys.executable
+    os.environ['PYSPARK_DRIVER_PYTHON'] = sys.executable
 
-    print("--- ✨ Iniciando Capa Gold (Enriquecimiento y KPIs) ---")
+    spark = SparkSession.builder \
+        .master("local[*]") \
+        .appName("Capa_Gold") \
+        .config("spark.sql.parquet.datetimeRebaseModeInRead", "LEGACY") \
+        .config("spark.hadoop.fs.file.impl", "org.apache.hadoop.fs.RawLocalFileSystem") \
+        .getOrCreate()
 
     try:
-        # 1. Cargar datos de Silver y el Catálogo de Regiones
-        df_silver = pd.read_parquet(path_silver)
-        df_regions = pd.read_csv(path_regions)
-
-        # 2. Enriquecimiento: Join entre transacciones y regiones
-        # Usamos la columna 'region' que está en ambos archivos
-        df_gold = pd.merge(df_silver, df_regions, on='region', how='left')
-
-        # 3. Cálculo de KPIs Rápidos
-        # Por ejemplo: Exposición financiera por segmento de riesgo
-        kpi_riesgo = df_gold.groupby('risk_segment')['outstanding_balance'].sum().reset_index()
+        print("🏆 Iniciando proceso Capa Gold...")
         
-        # 4. Guardar Tabla Maestra Final
-        df_gold.to_parquet(os.path.join(path_gold, "master_credit_data.parquet"), index=False)
-        
-        # Guardar un CSV de resumen para facilitar la lectura del evaluador
-        kpi_riesgo.to_csv(os.path.join(path_gold, "resumen_riesgo.csv"), index=False)
+        # IMPORTANTE: Verifica que esta ruta coincida con la salida de Silver
+        path_silver = "data/silver"
+        if not os.path.exists(path_silver):
+            print(f"⚠️ La carpeta {path_silver} no existe. Creando dummy o revisando...")
+            return
 
-        print(f"✅ Capa Gold completada.")
-        print("\n📊 VISTA PREVIA DEL KPI DE RIESGO:")
-        print(kpi_riesgo)
+        df_silver = spark.read.parquet(path_silver)
+
+        print("📊 Calculando métricas por región...")
+        reporte_region = df_silver.groupBy("region").agg(
+            count("loan_id").alias("total_prestamos"),
+            round(sum("outstanding_balance"), 2).alias("deuda_total"),
+            round(avg("interest_rate"), 4).alias("tasa_promedio")
+        ).orderBy(col("deuda_total").desc())
+
+        reporte_region.write.mode("overwrite").parquet("data/gold/reporte_regional")
+        
+        print("✅ Capa Gold completada exitosamente!")
+        reporte_region.show()
 
     except Exception as e:
         print(f"❌ Error en Gold: {e}")
+    finally:
+        spark.stop()
 
 if __name__ == "__main__":
     procesar_gold()

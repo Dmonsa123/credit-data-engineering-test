@@ -1,20 +1,16 @@
-# Spark y Hadoop
-spark-warehouse/
-metastore_db/
-derby.log
-checkpoint/
-*.lzo
-*.crc
-
-# Python y Entorno
+# Python
 __pycache__/
 *.py[cod]
+*$py.class
 venv/
 .env
 
-# Datos (IMPORTANTE: Solo subimos la estructura, no los datos procesados)
-data/input/
-data/bronze/
-data/silver/
-data/gold/
-data/quarantine/
+# Spark/Hadoop locales
+spark-warehouse/
+metastore_db/
+derby.log
+
+# Datos y reportes (No se suelen subir datos crudos a GitHub)
+data/
+report/*.png
+batch_*.csv

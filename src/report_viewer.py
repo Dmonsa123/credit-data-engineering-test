@@ -1,31 +1,43 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 import os
+import glob
 
 def generar_grafico():
-    path_resumen = "data/gold/resumen_riesgo.csv"
-    output_image = "report/kpi_riesgo.png"
+    print("📊 Generando visualización final...")
+    path_gold = "data/gold/reporte_regional"
     
-    os.makedirs("report", exist_ok=True)
-
-    if not os.path.exists(path_resumen):
-        print(f"⚠️ No se encontró {path_resumen}. Saltando gráfico.")
+    if not os.path.exists(path_gold):
+        print("❌ No hay datos en Gold para graficar.")
         return
 
-    df = pd.read_csv(path_resumen)
+    try:
+        # Spark guarda archivos repartidos, buscamos el archivo .parquet real
+        parquet_files = glob.glob(f"{path_gold}/*.parquet")
+        if not parquet_files:
+            print("❌ No se encontraron archivos parquet en Gold.")
+            return
 
-    plt.figure(figsize=(10, 6))
-    colors = ['#ff9999','#66b3ff','#99ff99'] # Rojo, Azul, Verde para riesgo
-    plt.bar(df['risk_segment'], df['outstanding_balance'], color=colors)
-    
-    plt.title('Exposición Financiera por Segmento de Riesgo', fontsize=14)
-    plt.xlabel('Segmento de Riesgo')
-    plt.ylabel('Balance Pendiente')
-    plt.grid(axis='y', alpha=0.3)
+        # Leemos con Pandas (requiere pip install pyarrow)
+        df = pd.read_parquet(parquet_files[0])
+        
+        # Crear gráfico
+        plt.figure(figsize=(10, 6))
+        df.plot(kind='bar', x='region', y='total_prestamos', color='skyblue')
+        plt.title('Préstamos por Región')
+        plt.xlabel('Región')
+        plt.ylabel('Cantidad')
+        plt.xticks(rotation=45)
+        plt.tight_layout()
+        
+        # Guardar y mostrar
+        os.makedirs("report", exist_ok=True)
+        plt.savefig("report/reporte_regional.png")
+        print("✅ Gráfico guardado en report/reporte_regional.png")
+        # plt.show() # Opcional: muestra la ventana si estás en local
+        
+    except Exception as e:
+        print(f"❌ Error al generar gráfico: {e}")
 
-    # GUARDAR Y CERRAR
-    plt.savefig(output_image)
-    print(f"✅ Gráfico guardado en '{output_image}'")
-    
-    # plt.show() # <-- Comentado para automatización
-    plt.close() # <-- Importante para liberar memoria en el main
+if __name__ == "__main__":
+    generar_grafico()
