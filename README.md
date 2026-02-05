@@ -1,26 +1,45 @@
-
-# Credit Data Engineering Test - Medallion Architecture
+# 💳 Credit Data Engineering Test - Medallion Architecture
 
 Proyecto de ingeniería de datos que implementa una arquitectura Medallion para el procesamiento de eventos de crédito.
 
-## Arquitectura
-1. **Ingestion**: Simulación de micro-batches desde CSV original.
-2. **Bronze**: Almacenamiento raw en formato Parquet con metadatos de auditoría.
-3. **Silver**: Limpieza de duplicados y validación de integridad (montos > 0).
-4. **Gold**: Enriquecimiento con datos de regiones y cálculo de KPIs de riesgo.
+## 🛠️ Desafíos Técnicos Resueltos
 
-├── data/               # Repositorio de datos (Bronze, Silver, Gold)
-├── report/             # Salida de visualizaciones finales
+* **Compatibilidad de Esquemas (Pandas ↔ Spark)**: Se resolvió el error de tipos `INT64 (TIMESTAMP_NANOS)` forzando la conversión a microsegundos (`coerce_timestamps='us'`) en la capa Bronze, asegurando que el motor de Spark en la JVM pueda procesar los archivos sin errores de esquema.
+* **Optimización en Windows**: Configuración dinámica de variables de entorno para una ejecución fluida de PySpark en entornos locales, gestionando correctamente el `SPARK_HOME` y la compatibilidad con Python 3.10.
+
+## 📂 Estructura del Proyecto
+
+```text
+├── data/               # Repositorio local de datos (Ignorado por Git)
+├── report/             # Salida de visualizaciones (Gráficos PNG)
 ├── src/
-│   ├── ingestion.py    # Generación de datos iniciales
-│   ├── bronze_layer.py # Transformación CSV a Parquet
-│   ├── silver_layer.py # Limpieza y validación con Spark
-│   ├── gold_layer.py   # Agregaciones de negocio
-│   └── report_viewer.py# Generación de gráficos (Matplotlib/Pandas)
-├── main.py             # Orquestador principal del pipeline
-└── requirements.txt    # Dependencias del proyecto
-## Cómo ejecutar
-1. Instalar dependencias: `pip install -r requirements.txt`
-2. Ejecutar pipeline en orden:
-   - `python main.py`
-3. Ver reporte: `python src/report_viewer.py`
+│   ├── ingestion.py    # Simulación de ingesta (CSV)
+│   ├── bronze_layer.py # Transformación Raw a Parquet (Fix de Timestamps)
+│   ├── silver_layer.py # Limpieza y validación con PySpark
+│   ├── gold_layer.py   # Agregaciones de negocio y KPIs
+│   └── report_viewer.py# Generación de reporte visual
+├── main.py             # Orquestador principal del pipeline completo
+├── requirements.txt    # Dependencias del proyecto
+└── .gitignore          # Exclusión de archivos temporales y datos pesados
+```
+# 🚀 Cómo Ejecutar
+
+## 1. Preparar el entorno
+Se recomienda usar un entorno virtual de Python 3.10 o superior:
+
+```pip install -r requirements.txt```
+
+## 2. Ejecutar el Pipeline Completo
+El proyecto incluye un orquestador ```(main.py)``` que ejecuta todas las capas de forma secuencial:
+
+```python main.py```
+
+## 3. Resultados
+
+Los logs de la terminal mostrarán el progreso de cada capa (Bronze -> Silver -> Gold).
+El análisis visual final se generará en la ruta: ```report/reporte_regional.png```.
+
+---
+**Desarrollado por:** Dmonsa123
+
+ **Tecnologías:**  Python | PySpark | Pandas | Parquet | Matplotlib
