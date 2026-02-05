@@ -40,6 +40,6 @@ Los logs de la terminal mostrarán el progreso de cada capa (Bronze -> Silver ->
 El análisis visual final se generará en la ruta: ```report/reporte_regional.png```.
 
 ---
-**Desarrollado por:** Dmonsa123
+**Desarrollado por:** David Fernando Monsalve
 
  **Tecnologías:**  Python | PySpark | Pandas | Parquet | Matplotlib
